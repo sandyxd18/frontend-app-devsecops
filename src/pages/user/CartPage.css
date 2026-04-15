@@ -1,0 +1,3 @@
+.cart-item {
+  transition: opacity var(--transition-normal);
+}

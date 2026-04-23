@@ -4,9 +4,18 @@ import { authApi } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
 import './LoginPage.css';
 
+// Decode JWT payload without verification (for extracting claims client-side)
+function decodeJwt(token) {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(base64));
+  } catch { return {}; }
+}
+
 export default function LoginPage() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -17,69 +26,111 @@ export default function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-
     try {
       const response = await authApi.post('/auth/login', { username, password });
-      if (response.data && response.data.data && response.data.data.token) {
-        // Because of the 'no localStorage' requirement, just save to Zustand memory
-        setAuth(response.data.data.token, { username });
+      if (response.data?.data?.token) {
+        const token = response.data.data.token;
+        const claims = decodeJwt(token);
+        setAuth(token, { id: claims.sub, username: claims.username || username, role: claims.role });
         navigate('/');
       } else {
         setError('Invalid response from server.');
       }
     } catch (err) {
-       setError(err.response?.data?.message || 'Failed to login. Please try again.');
+      setError(err.response?.data?.message || 'Failed to login. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-box card">
-        <h2 style={{marginBottom: '20px', fontSize: '28px', fontWeight: 500}}>Sign in</h2>
-        
-        {error && <div className="error-alert">{error}</div>}
-        
-        <form onSubmit={handleLogin} className="flex-col gap-4">
-          <div className="form-group flex-col">
-            <label htmlFor="username">Username</label>
-            <input 
-              type="text" 
-              id="username" 
-              value={username} 
-              onChange={(e) => setUsername(e.target.value)} 
-              required 
-            />
+    <div style={{ backgroundColor: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Logo */}
+      <div style={{ textAlign: 'center', padding: '18px 0 10px' }}>
+        <Link to="/" style={{ textDecoration: 'none', color: '#000', fontSize: '28px', fontWeight: 'bold', letterSpacing: '-0.5px' }}>
+          Bookstore
+        </Link>
+      </div>
+      <div style={{ width: '1px', height: '1px', background: '#ddd', margin: '0 auto', boxShadow: '0 1px 0 rgba(0,0,0,0.08)', width: '100%' }} />
+
+      {/* Card */}
+      <div style={{ width: '348px', margin: '20px auto 0', flex: 1 }}>
+        <div style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '22px 26px 26px' }}>
+          <h1 style={{ fontSize: '26px', fontWeight: 500, marginBottom: '18px', color: '#0f1111' }}>Sign in</h1>
+
+          {error && (
+            <div style={{ color: '#c40000', fontSize: '13px', border: '1px solid #d82c0d', padding: '10px 12px', backgroundColor: '#fef0ef', borderRadius: '4px', marginBottom: '14px' }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div className="auth-form-group">
+              <label htmlFor="username">Username</label>
+              <input
+                className="auth-input"
+                type="text"
+                id="username"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="auth-form-group">
+              <label htmlFor="password">Password</label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  className="auth-input"
+                  type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  required
+                  style={{ paddingRight: '48px' }}
+                />
+                <span
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#007185', userSelect: 'none' }}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </span>
+              </div>
+            </div>
+
+            <button type="submit" className="auth-btn-primary" style={{ marginTop: '4px' }} disabled={loading}>
+              {loading ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
+
+          <div style={{ marginTop: '16px', fontSize: '12px', lineHeight: 1.6, color: '#555' }}>
+            By continuing, you agree to Bookstore's{' '}
+            <a href="#" style={{ color: '#0066c0', textDecoration: 'none' }}>Conditions of Use</a>
+            {' '}and{' '}
+            <a href="#" style={{ color: '#0066c0', textDecoration: 'none' }}>Privacy Notice</a>.
           </div>
-          <div className="form-group flex-col">
-            <label htmlFor="password">Password</label>
-            <input 
-              type="password" 
-              id="password" 
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
-              required 
-            />
+          <div style={{ marginTop: '10px' }}>
+            <Link to="/forgot-password" style={{ color: '#0066c0', textDecoration: 'none', fontSize: '13px' }}>
+              Forgot Password?
+            </Link>
           </div>
-          
-          <button type="submit" className="btn btn-primary w-full" style={{padding: '12px', marginTop: '10px'}} disabled={loading}>
-            {loading ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
-        
-        <div style={{marginTop: '20px', fontSize: '13px'}}>
-          By continuing, you agree to Bookstore's Conditions of Use and Privacy Notice.
         </div>
+
+        {/* Divider */}
+        <div style={{ display: 'flex', alignItems: 'center', margin: '18px 0 12px' }}>
+          <div style={{ flex: 1, borderTop: '1px solid #e7e7e7' }} />
+          <span style={{ padding: '0 12px', fontSize: '12px', color: '#767676' }}>New to Bookstore?</span>
+          <div style={{ flex: 1, borderTop: '1px solid #e7e7e7' }} />
+        </div>
+
+        <Link to="/register" className="auth-btn-secondary">
+          Create your Bookstore account
+        </Link>
       </div>
-      
-      <div className="login-divider">
-         <span>New to Bookstore?</span>
+
+      <div style={{ borderTop: '1px solid #eee', padding: '18px 0', marginTop: '40px', textAlign: 'center' }}>
+        <span style={{ fontSize: '11px', color: '#777' }}>© 2026, Bookstore. All Rights Reserved</span>
       </div>
-      
-      <Link to="/register" className="btn btn-secondary register-btn w-full">
-         Create your Bookstore account
-      </Link>
     </div>
   );
 }

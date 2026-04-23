@@ -1,3 +1,7 @@
+/* ===================================
+   Auth Pages Shared Styles
+   =================================== */
+
 .login-container {
   max-width: 350px;
   margin: 40px auto;
@@ -22,6 +26,82 @@
   font-size: 14px;
 }
 
+/* Label above input */
+.auth-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-form-group label {
+  font-size: 13px;
+  font-weight: 700;
+  margin-bottom: 5px;
+  color: #0f1111;
+}
+
+/* Input with blue focus (Amazon style) */
+.auth-input {
+  padding: 8px 12px;
+  border: 1px solid #949494;
+  border-radius: 3px;
+  font-size: 14px;
+  outline: none;
+  width: 100%;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.auth-input:focus {
+  border-color: #007EB9;
+  box-shadow: 0 0 0 3px rgba(0, 126, 185, 0.25);
+}
+
+/* Oval pill button (Amazon Continue style) */
+.auth-btn-primary {
+  width: 100%;
+  padding: 10px;
+  background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
+  border: none;
+  border-radius: 999px;   /* full oval */
+  font-size: 14px;
+  font-weight: 600;
+  color: #111;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.auth-btn-primary:hover {
+  background: linear-gradient(to bottom, #f5d78e, #e8b83f);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.auth-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Secondary grey button (Create account) */
+.auth-btn-secondary {
+  width: 100%;
+  padding: 9px;
+  background: linear-gradient(to bottom, #f7f8f8, #e7e9ec);
+  border: 1px solid #adb1b8;
+  border-radius: 999px;
+  font-size: 13px;
+  color: #0f1111;
+  cursor: pointer;
+  text-align: center;
+  display: block;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.auth-btn-secondary:hover {
+  background: linear-gradient(to bottom, #e7e9ec, #d9dadc);
+  text-decoration: none;
+  color: #0f1111;
+}
+
+/* Legacy compat */
 .form-group label {
   font-size: 13px;
   font-weight: 700;
@@ -37,28 +117,33 @@
 }
 
 .form-group input:focus {
-  border-color: var(--amz-orange);
-  box-shadow: 0 0 3px rgba(228, 121, 17, 0.5);
+  border-color: #007EB9;
+  box-shadow: 0 0 0 3px rgba(0, 126, 185, 0.25);
 }
 
-.login-divider {
-  width: 100%;
-  text-align: center;
-  border-bottom: 1px solid #e7e7e7;
-  line-height: 0.1em;
-  margin: 25px 0 15px;
+/* Copy toast popup */
+.copy-toast {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #232f3e;
+  color: #FFD814;
+  padding: 10px 24px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  animation: fadeInUp 0.25s ease, fadeOut 0.3s ease 1.7s forwards;
+  white-space: nowrap;
 }
 
-.login-divider span {
-  background: var(--bg-main);
-  padding: 0 10px;
-  font-size: 12px;
-  color: #767676;
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
-.register-btn {
-  background-color: #e7e9ec;
-  border-color: #adb1b8 #a2a6ac #8d9096;
-  width: 100%;
-  margin-top: 10px;
+@keyframes fadeOut {
+  to { opacity: 0; }
 }

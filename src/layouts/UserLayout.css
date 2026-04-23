@@ -78,10 +78,10 @@
   display: none;
   position: absolute;
   top: 100%;
-  right: -20px;
+  right: -10px;
   background-color: #fff;
   color: #111;
-  width: 240px;
+  width: 280px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   border-radius: 4px;
   padding: 16px;
@@ -93,10 +93,10 @@
 .nav-dropdown-menu::before {
   content: '';
   position: absolute;
-  top: -6px;
-  right: 50px;
-  width: 10px;
-  height: 10px;
+  top: -8px;
+  right: 12px;
+  width: 14px;
+  height: 14px;
   background-color: #fff;
   transform: rotate(45deg);
   border-top: 1px solid #ccc;

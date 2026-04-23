@@ -32,3 +32,11 @@ export const useCartStore = create((set, get) => ({
     return get().items.reduce((total, item) => total + item.book.price * item.quantity, 0);
   },
 }));
+
+// App Store
+export const useAppStore = create((set) => ({
+  books: [],
+  setBooks: (books) => set({ books }),
+  selectedAuthor: null,
+  setSelectedAuthor: (author) => set({ selectedAuthor: author }),
+}));

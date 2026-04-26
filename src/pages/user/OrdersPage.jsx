@@ -345,7 +345,8 @@ function OrderDetailModal({ order, bookMap, onClose, onPayNow, onCancelRequest }
 
 // ─── Orders Page ─────────────────────────────────────────────────────────────
 export default function OrdersPage() {
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
+  useEffect(() => { document.title = 'Order List | Bookstore'; }, []);
   const [orders, setOrders]       = useState([]);
   const [bookMap, setBookMap]     = useState({}); // { book_id: { title, image_url, author } }
   const [loading, setLoading]     = useState(true);
@@ -355,7 +356,7 @@ export default function OrdersPage() {
 
   // Fetch orders then enrich with book details
   useEffect(() => {
-    if (!token || !user?.id) return;
+    if (!user?.id) return;
 
     orderApi.get(`/orders/user/${user.id}`)
       .then(async r => {
@@ -381,7 +382,7 @@ export default function OrdersPage() {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [token, user?.id]);
+  }, [user?.id]);
 
   // Called when QR expires and order is auto-cancelled
   const handleOrderCancelled = (orderId) => {
@@ -395,7 +396,8 @@ export default function OrdersPage() {
     setQrOrder(null);
   };
 
-  if (!token || !user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+
 
   return (
     <div style={{ backgroundColor: '#EAEDED', minHeight: 'calc(100vh - 130px)', padding: '30px 0 50px' }}>

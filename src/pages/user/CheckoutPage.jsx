@@ -16,7 +16,7 @@ const PAYMENT_METHODS = [
 export default function CheckoutPage() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { token, user } = useAuthStore();
+  const { user } = useAuthStore();
 
   // Book passed via navigate state
   const { book } = location.state || {};
@@ -27,7 +27,7 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!token) { navigate('/login'); return; }
+    if (!user) { navigate('/login'); return; }
     if (!book) { navigate('/'); return; }
   }, []);
 
@@ -38,7 +38,7 @@ export default function CheckoutPage() {
   const maxQty = Math.min(book.stock, 99);
 
   const handlePlaceOrder = async () => {
-    if (!token || !user) { navigate('/login'); return; }
+    if (!user) { navigate('/login'); return; }
     setError('');
     setPlacing(true);
     try {

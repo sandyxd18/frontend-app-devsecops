@@ -1,18 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
 import './LoginPage.css';
 
-// Decode JWT payload without verification (for extracting claims client-side)
-function decodeJwt(token) {
-  try {
-    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(base64));
-  } catch { return {}; }
-}
-
 export default function LoginPage() {
+  useEffect(() => { document.title = 'Login | Bookstore'; }, []);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,28 +13,27 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   
   const navigate = useNavigate();
-  const setAuth = useAuthStore((state) => state.login);
+  const { login } = useAuthStore();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
+      // POST /auth/login — server sets HttpOnly cookie + returns user & token in body
       const response = await authApi.post('/auth/login', { username, password });
-      if (response.data?.data?.token) {
-        const token = response.data.data.token;
-        const claims = decodeJwt(token);
-        setAuth(token, { id: claims.sub, username: claims.username || username, role: claims.role });
-        navigate('/');
-      } else {
-        setError('Invalid response from server.');
-      }
+      const { user, token } = response.data?.data || {};
+      if (!user) throw new Error('Invalid response from server.');
+      login(user, token); // token stored in-memory for other service calls
+      navigate('/');
+
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to login. Please try again.');
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <div style={{ backgroundColor: '#fff', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>

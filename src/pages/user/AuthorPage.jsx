@@ -7,11 +7,16 @@ import './HomePage.css'; // Reuse product-grid styles
 export default function AuthorPage() {
   const { authorName } = useParams();
   const navigate = useNavigate();
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [purchasingId, setPurchasingId] = useState(null);
+
+  useEffect(() => {
+    document.title = authorName ? `${authorName} | Bookstore` : 'Bookstore';
+    return () => { document.title = 'Bookstore'; };
+  }, [authorName]);
 
   useEffect(() => {
     const fetchBooks = async () => {
@@ -29,7 +34,7 @@ export default function AuthorPage() {
   }, [authorName]);
 
   const handleBuyNow = async (product) => {
-    if (!token || !user) {
+    if (!user) {
       navigate('/login');
       return;
     }

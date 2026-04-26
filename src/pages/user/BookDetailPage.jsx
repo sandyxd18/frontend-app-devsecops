@@ -7,7 +7,7 @@ import './BookDetailPage.css';
 export default function BookDetailPage() {
   const { bookId } = useParams();
   const navigate = useNavigate();
-  const { user, token } = useAuthStore();
+  const { user } = useAuthStore();
 
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,10 +22,13 @@ export default function BookDetailPage() {
     setLoading(true);
     try {
       const res = await bookApi.get(`/books/${bookId}`);
-      setBook(res.data?.data || res.data);
+      const data = res.data?.data || res.data;
+      setBook(data);
+      document.title = data?.title ? `${data.title} | Bookstore` : 'Bookstore';
       setError('');
     } catch (err) {
       setError(err.response?.data?.message || 'Book not found.');
+      document.title = 'Bookstore';
     } finally {
       setLoading(false);
     }
@@ -44,7 +47,7 @@ export default function BookDetailPage() {
   }, [bookId]);
 
   const handleBuyNow = () => {
-    if (!token || !user) { navigate('/login'); return; }
+    if (!user) { navigate('/login'); return; }
     navigate('/checkout', { state: { book } });
   };
 

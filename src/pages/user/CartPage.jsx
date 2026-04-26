@@ -6,7 +6,7 @@ import './CartPage.css';
 
 export default function CartPage() {
   const { items, removeItem, getCartTotal, clearCart } = useCartStore();
-  const { token } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
   
   const [loading, setLoading] = useState(false);
@@ -15,7 +15,7 @@ export default function CartPage() {
   const total = getCartTotal();
 
   const handleCheckout = async () => {
-    if (!token) {
+    if (!user) {
       alert("Please sign in first to checkout.");
       navigate('/login');
       return;

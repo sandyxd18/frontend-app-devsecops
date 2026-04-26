@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { LogOut } from 'lucide-react';
 import { authApi, orderApi } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
 
@@ -16,16 +17,17 @@ const IconArrowClockwise = () => (
   </svg>
 );
 
-const IconBoxArrowLeft = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
-    <path fillRule="evenodd" d="M6 12.5a.5.5 0 0 0 .5.5h8a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5h-8a.5.5 0 0 0-.5.5v2a.5.5 0 0 1-1 0v-2A1.5 1.5 0 0 1 6.5 2h8A1.5 1.5 0 0 1 16 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 5 12.5v-2a.5.5 0 0 1 1 0z"/>
-    <path fillRule="evenodd" d="M.146 8.354a.5.5 0 0 1 0-.708l3-3a.5.5 0 1 1 .708.708L1.707 7.5H10.5a.5.5 0 0 1 0 1H1.707l2.147 2.146a.5.5 0 0 1-.708.708z"/>
-  </svg>
-);
 
 const IconTriangleFill = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" fill="currentColor" viewBox="0 0 16 16" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
     <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5m.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2"/>
+  </svg>
+);
+
+// order_approve Material Symbol — order with a checkmark (approval)
+const IconOrderApprove = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" height="18" viewBox="0 -960 960 960" width="18" fill="currentColor" style={{ marginRight: '6px', verticalAlign: 'middle', flexShrink: 0 }}>
+    <path d="m691-150 139-138-42-42-97 95-39-39-42 43 81 81ZM240-600h480v-80H240v80ZM720-40q-83 0-141.5-58.5T520-240q0-83 58.5-141.5T720-440q83 0 141.5 58.5T920-240q0 83-58.5 141.5T720-40ZM120-80v-680q0-33 23.5-56.5T200-840h560q33 0 56.5 23.5T840-760v267q-19-9-39-15t-41-9v-243H200v562h243q5 31 15.5 59T486-86l-6 6-60-60-60 60-60-60-60 60-60-60-60 60Zm120-200h203q3-21 9-41t15-39H240v80Zm0-160h284q38-37 88.5-58.5T720-520H240v80Zm-40 242v-562 562Z"/>
   </svg>
 );
 
@@ -40,8 +42,10 @@ const modalBox = {
 };
 
 export default function ProfilePage() {
-  const { token, user, logout } = useAuthStore();
+  const { user, clearUser } = useAuthStore();
   const navigate = useNavigate();
+
+  useEffect(() => { document.title = 'Profile | Bookstore'; }, []);
 
   const [profile, setProfile] = useState(null);
   const [orders, setOrders] = useState([]);
@@ -73,20 +77,11 @@ export default function ProfilePage() {
   const [copyToast, setCopyToast] = useState(false);
 
   useEffect(() => {
-    if (!token) { navigate('/login'); return; }
-    // Extract user ID from JWT (sub claim) as fallback
-    const getUserId = () => {
-      if (user?.id) return user.id;
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
-        return payload.sub;
-      } catch { return null; }
-    };
+    if (!user) { navigate('/login'); return; }
     const load = async () => {
       try {
-        const userId = getUserId();
         const requests = [authApi.get('/auth/profile')];
-        if (userId) requests.push(orderApi.get(`/orders/user/${userId}`));
+        if (user?.id) requests.push(orderApi.get(`/orders/user/${user.id}`));
         const [pRes, oRes] = await Promise.all(requests);
         setProfile(pRes.data?.data);
         if (oRes) setOrders(oRes.data?.data?.orders || oRes.data?.data || []);
@@ -94,16 +89,21 @@ export default function ProfilePage() {
       finally { setLoading(false); }
     };
     load();
-  }, [token]);
+  }, [user?.id]);
 
-  const handleLogout = () => { logout(); navigate('/'); };
+  const handleLogout = async () => {
+    try { await authApi.post('/auth/logout'); } catch {}
+    clearUser(); navigate('/');
+  };
 
   const handleDelete = async () => {
     if (!deletePassword) { setDeleteError('Please enter your password.'); return; }
     setDeleting(true); setDeleteError('');
     try {
       await authApi.delete('/auth/account', { data: { password: deletePassword } });
-      logout(); navigate('/');
+      try { await authApi.post('/auth/logout'); } catch {}
+      clearUser(); navigate('/');
+
     } catch (e) { setDeleteError(e.response?.data?.message || 'Failed.'); setDeleting(false); }
   };
 
@@ -201,8 +201,8 @@ export default function ProfilePage() {
             onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 12px rgba(0,0,0,0.1)'}
             onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
           >
-            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f1111', marginBottom: '12px' }}>
-              📦 Order History
+            <div style={{ fontSize: '14px', fontWeight: 700, color: '#0f1111', marginBottom: '12px', display: 'flex', alignItems: 'center' }}>
+              <IconOrderApprove /> Order History
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ background: '#fff', borderRadius: '6px', padding: '16px', textAlign: 'center', border: '1px solid #e8e8e8' }}>
@@ -224,11 +224,11 @@ export default function ProfilePage() {
             {/* Sign Out */}
             <button
               onClick={handleLogout}
-              style={{ ...btnBase, background: '#FFD814', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#f0c14b'}
-              onMouseLeave={e => e.currentTarget.style.background = '#FFD814'}
+              style={{ ...btnBase, background: '#ef4444', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#dc2626'}
+              onMouseLeave={e => e.currentTarget.style.background = '#ef4444'}
             >
-              <IconBoxArrowLeft /> Sign Out
+              <LogOut size={15} /> Sign Out
             </button>
 
             {/* Change Password */}
@@ -271,9 +271,7 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        <div style={{ textAlign: 'center' }}>
-          <Link to="/" style={{ color: '#0066c0', textDecoration: 'none', fontSize: '14px' }}>← Back to Bookstore</Link>
-        </div>
+
       </div>
 
       {/* ── Delete Modal ── */}

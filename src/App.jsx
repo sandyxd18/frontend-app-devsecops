@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import UserLayout from './layouts/UserLayout';
 import HomePage from './pages/user/HomePage';
 import LoginPage from './pages/user/LoginPage';
@@ -34,6 +34,9 @@ function App() {
           <Route path="author/:authorName" element={<AuthorPage />} />
           <Route path="profile" element={<ProfilePage />} />
         </Route>
+
+        {/* Catch-all: redirect unknown paths (e.g. /index.html) to home */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

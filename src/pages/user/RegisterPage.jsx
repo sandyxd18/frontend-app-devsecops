@@ -4,6 +4,7 @@ import { authApi } from '../../services/api';
 import './LoginPage.css';
 
 export default function RegisterPage() {
+  useEffect(() => { document.title = 'Register | Bookstore'; }, []);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');

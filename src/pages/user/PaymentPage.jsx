@@ -12,6 +12,8 @@ export default function PaymentPage() {
 
   const { paymentMethod = 'qr' } = location.state || {};
 
+  useEffect(() => { document.title = 'Payment | Bookstore'; }, []);
+
   const [qrData, setQrData] = useState(null);
   const [orderDetails, setOrderDetails] = useState(null);
   const [loading, setLoading] = useState(true);

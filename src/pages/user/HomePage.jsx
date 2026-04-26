@@ -1,18 +1,20 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppStore, useAuthStore } from '../../store/useStore';
 import './HomePage.css';
 
 export default function HomePage() {
   const { books, selectedAuthor, setSelectedAuthor } = useAppStore();
-  const { token } = useAuthStore();
+  const { user } = useAuthStore();
   const navigate = useNavigate();
+
+  useEffect(() => { document.title = 'Bookstore'; }, []);
 
   // Deduplicate authors (up to 4)
   const groupAuthors = [...new Set(books.map(b => b.author))].filter(Boolean).slice(0, 4);
 
   const handleBuyNow = (book) => {
-    if (!token) {
+    if (!user) {
       navigate('/login');
       return;
     }
@@ -75,17 +77,26 @@ export default function HomePage() {
           <h2 style={{ marginBottom: '20px' }}>All Books</h2>
           <div className="product-grid">
             {books.map(product => (
-              <div key={product.id} className="product-card card">
+              <div key={product.id} className="product-card card" style={{ opacity: product.stock <= 0 ? 0.85 : 1 }}>
                 <div
                   className="product-image-wrap"
                   onClick={() => navigate(`/book/${product.id}`)}
-                  style={{ cursor: 'pointer' }}
+                  style={{ cursor: 'pointer', position: 'relative' }}
                 >
                   <img
                     src={product.image_url || 'https://via.placeholder.com/200?text=No+Image'}
                     alt={product.title}
                     className="product-image"
+                    style={{ filter: product.stock <= 0 ? 'grayscale(60%)' : 'none', opacity: product.stock <= 0 ? 0.7 : 1 }}
                   />
+                  {product.stock <= 0 && (
+                    <div style={{
+                      position: 'absolute', top: '8px', left: '8px',
+                      background: '#c40000', color: '#fff',
+                      fontSize: '11px', fontWeight: 700, padding: '3px 8px',
+                      borderRadius: '3px', letterSpacing: '0.5px',
+                    }}>OUT OF STOCK</div>
+                  )}
                 </div>
                 <div className="product-info">
                   <h3 className="product-title" onClick={() => navigate(`/book/${product.id}`)}>
@@ -97,13 +108,10 @@ export default function HomePage() {
                   <div className="product-price">
                     {new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(product.price)}
                   </div>
-                  {product.stock <= 0 && (
-                    <div style={{ color: '#c40000', fontSize: '13px', marginTop: '8px' }}>Out of Stock</div>
-                  )}
                   <button
                     className="btn btn-primary w-full"
-                    style={{ 
-                      marginTop: product.stock <= 0 ? '8px' : '15px',
+                    style={{
+                      marginTop: '15px',
                       background: product.stock <= 0 ? '#e0e0e0' : undefined,
                       borderColor: product.stock <= 0 ? '#d5d9d9' : undefined,
                       color: product.stock <= 0 ? '#888' : undefined,

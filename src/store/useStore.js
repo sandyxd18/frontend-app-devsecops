@@ -1,11 +1,15 @@
 import { create } from 'zustand';
 
-// Auth Store (In-Memory as requested, no localStorage)
+// Auth Store — JWT in HttpOnly cookie (not JS-accessible) for auth-service.
+// _token is stored in-memory (not localStorage) for calling other microservices via Bearer header.
 export const useAuthStore = create((set) => ({
-  token: null,
   user: null,
-  login: (token, user) => set({ token, user }),
-  logout: () => set({ token: null, user: null }),
+  _token: null,        // in-memory Bearer token for book/order/payment services
+  isChecking: false,  // frontend is a public storefront — don't block on auth check
+  setUser: (user, token) => set({ user, _token: token || null, isChecking: false }),
+  clearUser: () => set({ user: null, _token: null, isChecking: false }),
+  login: (user, token) => set({ user, _token: token || null, isChecking: false }),
+  logout: () => set({ user: null, _token: null, isChecking: false }),
 }));
 
 // Cart Store
@@ -15,22 +19,14 @@ export const useCartStore = create((set, get) => ({
     const { items } = get();
     const existing = items.find((i) => i.book.id === book.id);
     if (existing) {
-      set({
-        items: items.map((i) =>
-          i.book.id === book.id ? { ...i, quantity: i.quantity + quantity } : i
-        ),
-      });
+      set({ items: items.map((i) => i.book.id === book.id ? { ...i, quantity: i.quantity + quantity } : i) });
     } else {
       set({ items: [...items, { book, quantity }] });
     }
   },
-  removeItem: (bookId) => {
-    set({ items: get().items.filter((i) => i.book.id !== bookId) });
-  },
+  removeItem: (bookId) => set({ items: get().items.filter((i) => i.book.id !== bookId) }),
   clearCart: () => set({ items: [] }),
-  getCartTotal: () => {
-    return get().items.reduce((total, item) => total + item.book.price * item.quantity, 0);
-  },
+  getCartTotal: () => get().items.reduce((total, item) => total + item.book.price * item.quantity, 0),
 }));
 
 // App Store

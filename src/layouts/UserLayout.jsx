@@ -121,7 +121,10 @@ export default function UserLayout() {
     navigate('/');
   };
 
-  const handleMenuEnter = () => { if (menuTimeoutRef.current) clearTimeout(menuTimeoutRef.current); setMenuOpen(true); };
+  const handleMenuEnter = () => {
+    if (menuTimeoutRef.current) { clearTimeout(menuTimeoutRef.current); }
+    setMenuOpen(true);
+  };
   const handleMenuLeave = () => { menuTimeoutRef.current = setTimeout(() => setMenuOpen(false), 300); };
 
   // Overlay: sidebar OR menu OR search focused

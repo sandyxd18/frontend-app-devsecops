@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
@@ -46,7 +46,7 @@ export default function LoginPage() {
 
     } catch (err) {
       // Catat kegagalan dan perbarui lock state
-      const { isLocked: nowLocked, isPermanent: nowPermanent } = recordFailure();
+      const { isPermanent: nowPermanent } = recordFailure();
 
       if (nowPermanent) {
         setError('Account locked due to too many failed login attempts. Please contact the administrator.');
@@ -77,7 +77,6 @@ export default function LoginPage() {
       );
     }
     if (isLocked) {
-      const attemptsLeft = attempts >= 10 ? '30 menit' : '10 menit';
       return (
         <div style={{
           color: '#78350f', fontSize: '13px',
@@ -119,7 +118,7 @@ export default function LoginPage() {
           Bookstore
         </Link>
       </div>
-      <div style={{ width: '1px', height: '1px', background: '#ddd', margin: '0 auto', boxShadow: '0 1px 0 rgba(0,0,0,0.08)', width: '100%' }} />
+      <div style={{ width: '100%', height: '1px', background: '#ddd', margin: '0 auto', boxShadow: '0 1px 0 rgba(0,0,0,0.08)' }} />
 
       {/* Card */}
       <div style={{ width: '348px', margin: '20px auto 0', flex: 1 }}>
@@ -163,12 +162,13 @@ export default function LoginPage() {
                   style={{ paddingRight: '48px' }}
                   disabled={isLocked}
                 />
-                <span
+                <button
+                  type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: isLocked ? 'default' : 'pointer', fontSize: '12px', color: '#007185', userSelect: 'none' }}
+                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: isLocked ? 'default' : 'pointer', fontSize: '12px', color: '#007185', userSelect: 'none', background: 'none', border: 'none', padding: 0 }}
                 >
                   {showPassword ? 'Hide' : 'Show'}
-                </span>
+                </button>
               </div>
             </div>
 
@@ -178,7 +178,11 @@ export default function LoginPage() {
               style={{ marginTop: '4px' }}
               disabled={loading || isLocked}
             >
-              {loading ? 'Signing in…' : isLocked ? (isPermanent ? 'Diblokir' : `Tunggu ${remainingLabel()}`) : 'Sign in'}
+              {(() => {
+                if (loading) return 'Signing in…';
+                if (isLocked) return isPermanent ? 'Diblokir' : `Tunggu ${remainingLabel()}`;
+                return 'Sign in';
+              })()}
             </button>
           </form>
 

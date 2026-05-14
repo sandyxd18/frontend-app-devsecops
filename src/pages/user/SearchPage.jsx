@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAppStore } from '../../store/useStore';
 import { bookApi } from '../../services/api';
@@ -15,7 +15,7 @@ export default function SearchPage() {
     if (books.length === 0) {
       bookApi.get('/books').then(r => setBooks(r.data?.data?.books || [])).catch(console.error);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- fetch books once if store is empty
 
   const fuzzyMatch = (query, text) => {
     if (!query || !text) return false;
@@ -83,8 +83,11 @@ export default function SearchPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
                   {authorGroups.map(({ author, books: ab }) => (
                     <div key={author}
+                      role="button"
+                      tabIndex={0}
                       style={{ background: '#fff', border: '1px solid #d5d9d9', borderRadius: '8px', padding: '18px', cursor: 'pointer', transition: 'box-shadow 0.18s' }}
                       onClick={() => navigate(`/author/${encodeURIComponent(author)}`)}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate(`/author/${encodeURIComponent(author)}`); }}
                       onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 12px rgba(0,0,0,0.1)'}
                       onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
                     >
@@ -113,8 +116,11 @@ export default function SearchPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '16px' }}>
                 {results.map(book => (
                   <div key={book.id}
+                    role="button"
+                    tabIndex={0}
                     style={{ background: '#fff', border: '1px solid #d5d9d9', borderRadius: '8px', padding: '14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', transition: 'box-shadow 0.18s' }}
                     onClick={() => navigate(`/book/${book.id}`)}
+                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate(`/book/${book.id}`); }}
                     onMouseEnter={e => e.currentTarget.style.boxShadow = '0 3px 12px rgba(0,0,0,0.1)'}
                     onMouseLeave={e => e.currentTarget.style.boxShadow = 'none'}
                   >

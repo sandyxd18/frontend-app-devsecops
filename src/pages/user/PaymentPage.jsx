@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useLocation, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { paymentApi, orderApi } from '../../services/api';
 
 const formatIDR = (p) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p);
@@ -7,10 +7,7 @@ const QR_VALIDITY_SECONDS = 15 * 60; // 15 minutes
 
 export default function PaymentPage() {
   const { orderId } = useParams();
-  const location = useLocation();
   const navigate = useNavigate();
-
-  const { paymentMethod = 'qr' } = location.state || {};
 
   useEffect(() => { document.title = 'Payment | Bookstore'; }, []);
 
@@ -238,7 +235,11 @@ export default function PaymentPage() {
                 onMouseEnter={e => !timerExpired && (e.currentTarget.style.background = '#f0c14b')}
                 onMouseLeave={e => !timerExpired && (e.currentTarget.style.background = '#FFD814')}
               >
-                {confirming ? 'Confirming…' : timerExpired ? 'QR Expired' : '✓ Confirm Payment'}
+                {(() => {
+                  if (confirming) return 'Confirming…';
+                  if (timerExpired) return 'QR Expired';
+                  return '✓ Confirm Payment';
+                })()}
               </button>
               <Link
                 to="/orders"

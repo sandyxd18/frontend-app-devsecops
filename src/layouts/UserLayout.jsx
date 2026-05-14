@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Link, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { Search, LogOut, User } from 'lucide-react';
+import { Search, LogOut } from 'lucide-react';
 import { useAuthStore, useAppStore } from '../store/useStore';
 import { bookApi, authApi } from '../services/api';
 import './UserLayout.css';
@@ -8,12 +8,6 @@ import './UserLayout.css';
 const IconPersonFill = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style={{ marginRight: '6px', verticalAlign: 'middle' }}>
     <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
-  </svg>
-);
-
-const IconPersonLinesFill = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor" viewBox="0 0 16 16" style={{ marginRight: '6px', flexShrink: 0 }}>
-    <path d="M6 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5 6s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zM11 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 0 1h-4a.5.5 0 0 1-.5-.5m.5 2.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1zm2 3a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1zm0 3a.5.5 0 0 0 0 1h2a.5.5 0 0 0 0-1z"/>
   </svg>
 );
 
@@ -30,6 +24,13 @@ const IconArticlePerson = () => (
     <path d="M13 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zM3 7H1v14h2V7zm0-4H1v2h2V3zm18 0h-2v2h2V3zm0 4h-2v14h2V7z"/>
   </svg>
 );
+
+const handleKeyDown = (callback) => (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    callback();
+  }
+};
 
 export default function UserLayout() {
   const { user, setUser, clearUser } = useAuthStore();
@@ -72,17 +73,14 @@ export default function UserLayout() {
         else clearUser();
       })
       .catch(() => clearUser());
-  }, []);
-
-
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- intentional: run once on mount
 
   // Fetch books once on mount
   useEffect(() => {
     bookApi.get('/books')
       .then(r => setBooks(r.data?.data?.books || []))
-      .catch(console.error);
-  }, []);
-
+      .catch(() => { /* fetch error silenced */ });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps -- intentional: fetch once on mount
 
   // Scroll-hide behavior: only on home page
   useEffect(() => {
@@ -93,13 +91,10 @@ export default function UserLayout() {
     const onScroll = () => {
       const currentY = window.scrollY;
       if (currentY <= 10) {
-        // At top — always show
         setNavbarHidden(false);
       } else if (currentY > lastScrollY.current + 5) {
-        // Scrolling down — hide
         setNavbarHidden(true);
       } else if (currentY < lastScrollY.current - 5) {
-        // Scrolling up — reveal
         setNavbarHidden(false);
       }
       lastScrollY.current = currentY;
@@ -121,8 +116,9 @@ export default function UserLayout() {
   const topAuthors = uniqueAuthors.slice(0, 5);
 
   const handleLogout = async () => {
-    try { await authApi.post('/auth/logout'); } catch {}
-    clearUser(); navigate('/');
+    try { await authApi.post('/auth/logout'); } catch (_e) { /* logout best-effort */ }
+    clearUser();
+    navigate('/');
   };
 
   const handleMenuEnter = () => { if (menuTimeoutRef.current) clearTimeout(menuTimeoutRef.current); setMenuOpen(true); };
@@ -180,7 +176,6 @@ export default function UserLayout() {
                     onMouseEnter={e => e.currentTarget.style.background = '#f3f4f6'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                     <IconPersonFill /> Profile
                   </Link>
-                  {/* Sign Out — red button matching dashboard style */}
                   <button
                     onClick={handleLogout}
                     style={{
@@ -221,13 +216,13 @@ export default function UserLayout() {
         {!hideBottomNav && (
           <div className="navbar-bottom">
             <div className="container flex gap-4" style={{ alignItems: 'center' }}>
-              <span className="bottom-nav-link" style={{ cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }} onClick={() => setSidebarOpen(true)}>
+              <button className="bottom-nav-link" style={{ cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: 'inherit', fontSize: 'inherit', padding: 0 }} onClick={() => setSidebarOpen(true)}>
                 ☰ All
-              </span>
-              {topAuthors.map((author, idx) => (
-                <span key={idx} className="bottom-nav-link" style={{ cursor: 'pointer' }} onClick={() => navigate(`/author/${encodeURIComponent(author)}`)}>
+              </button>
+              {topAuthors.map((author) => (
+                <button key={author} className="bottom-nav-link" style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'inherit', fontSize: 'inherit', padding: 0 }} onClick={() => navigate(`/author/${encodeURIComponent(author)}`)}>
                   {author}
-                </span>
+                </button>
               ))}
             </div>
           </div>
@@ -237,8 +232,12 @@ export default function UserLayout() {
       {/* ── Dark Overlay (sidebar + account hover + search focus) ── */}
       {overlayActive && (
         <div
+          role="button"
+          tabIndex={0}
+          aria-label="Close overlay"
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 50 }}
           onClick={() => { setSidebarOpen(false); setMenuOpen(false); setSearchFocused(false); }}
+          onKeyDown={handleKeyDown(() => { setSidebarOpen(false); setMenuOpen(false); setSearchFocused(false); })}
         />
       )}
 
@@ -253,19 +252,26 @@ export default function UserLayout() {
           <button onClick={() => setSidebarOpen(false)} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '20px', lineHeight: 1 }}>✕</button>
         </div>
         <div style={{ padding: '8px 0' }}>
-            <div style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: '#0f1111', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '8px' }}
-              onClick={() => { setSidebarOpen(false); navigate('/'); }}
-              onMouseEnter={e => e.currentTarget.style.background = '#f0f2f2'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-              <IconHome />
-              All Books
-            </div>
-          {uniqueAuthors.map((author, i) => (
-            <div key={i} style={{ padding: '12px 20px', cursor: 'pointer', fontSize: '14px', color: '#0f1111', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '8px' }}
+          <button
+            style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: '#0f1111', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #f0f0f0', textAlign: 'left' }}
+            onClick={() => { setSidebarOpen(false); navigate('/'); }}
+            onMouseEnter={e => e.currentTarget.style.background = '#f0f2f2'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <IconHome />
+            All Books
+          </button>
+          {uniqueAuthors.map((author) => (
+            <button
+              key={author}
+              style={{ padding: '12px 20px', cursor: 'pointer', fontSize: '14px', color: '#0f1111', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #f0f0f0', textAlign: 'left' }}
               onClick={() => { setSidebarOpen(false); navigate(`/author/${encodeURIComponent(author)}`); }}
-              onMouseEnter={e => e.currentTarget.style.background = '#f0f2f2'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+              onMouseEnter={e => e.currentTarget.style.background = '#f0f2f2'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
               <IconArticlePerson />
               {author}
-            </div>
+            </button>
           ))}
         </div>
       </div>

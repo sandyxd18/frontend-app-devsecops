@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
 import { authApi, orderApi } from '../../services/api';
@@ -92,7 +92,7 @@ export default function ProfilePage() {
   }, [user?.id]);
 
   const handleLogout = async () => {
-    try { await authApi.post('/auth/logout'); } catch {}
+    try { await authApi.post('/auth/logout'); } catch (_e) { /* logout best-effort */ }
     clearUser(); navigate('/');
   };
 
@@ -101,10 +101,10 @@ export default function ProfilePage() {
     setDeleting(true); setDeleteError('');
     try {
       await authApi.delete('/auth/account', { data: { password: deletePassword } });
-      try { await authApi.post('/auth/logout'); } catch {}
+      try { await authApi.post('/auth/logout'); } catch (_e) { /* logout best-effort */ }
       clearUser(); navigate('/');
 
-    } catch (e) { setDeleteError(e.response?.data?.message || 'Failed.'); setDeleting(false); }
+    } catch (err) { setDeleteError(err.response?.data?.message || 'Failed.'); setDeleting(false); }
   };
 
   const handleChangePw = async (e) => {
@@ -116,7 +116,7 @@ export default function ProfilePage() {
       setChangePwSuccess('Password changed!');
       setCurrentPw(''); setNewPw('');
       setTimeout(() => { setShowChangePwModal(false); setChangePwSuccess(''); }, 1800);
-    } catch (e) { setChangePwError(e.response?.data?.message || 'Failed.'); }
+    } catch (err) { setChangePwError(err.response?.data?.message || 'Failed.'); }
     finally { setChangingPw(false); }
   };
 
@@ -129,7 +129,7 @@ export default function ProfilePage() {
       const key = res.data?.data?.recovery_key;
       setNewRecoveryKey(key || '(no key returned)');
       setRegenPw('');
-    } catch (e) { setRegenError(e.response?.data?.message || 'Failed to regenerate key.'); }
+    } catch (err) { setRegenError(err.response?.data?.message || 'Failed to regenerate key.'); }
     finally { setRegenLoading(false); }
   };
 
@@ -192,7 +192,10 @@ export default function ProfilePage() {
 
           {/* ── Order History Container (big, clickable → /orders) ── */}
           <div
+            role="button"
+            tabIndex={0}
             onClick={() => navigate('/orders')}
+            onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/orders'); }}
             style={{
               border: '1px solid #d5d9d9', borderRadius: '8px', padding: '18px',
               marginBottom: '22px', cursor: 'pointer', background: '#fafafa',
@@ -276,8 +279,8 @@ export default function ProfilePage() {
 
       {/* ── Delete Modal ── */}
       {showDeleteModal && (
-        <div style={modalOverlay} onClick={() => setShowDeleteModal(false)}>
-          <div style={modalBox} onClick={e => e.stopPropagation()}>
+        <div role="button" tabIndex={0} aria-label="Close modal" style={modalOverlay} onClick={() => setShowDeleteModal(false)} onKeyDown={e => { if (e.key === 'Escape') setShowDeleteModal(false); }}>
+          <div role="dialog" style={modalBox} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
             <h3 style={{ color: '#c40000', fontSize: '17px', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
               <IconTriangleFill /> Delete Account
             </h3>
@@ -299,23 +302,23 @@ export default function ProfilePage() {
 
       {/* ── Change Password Modal ── */}
       {showChangePwModal && (
-        <div style={modalOverlay} onClick={() => setShowChangePwModal(false)}>
-          <div style={modalBox} onClick={e => e.stopPropagation()}>
+        <div role="button" tabIndex={0} aria-label="Close modal" style={modalOverlay} onClick={() => setShowChangePwModal(false)} onKeyDown={e => { if (e.key === 'Escape') setShowChangePwModal(false); }}>
+          <div role="dialog" style={modalBox} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
             <h3 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', color: '#0f1111' }}>
               <IconKey /> Change Password
             </h3>
             {changePwError && <div style={{ color: '#c40000', fontSize: '12px', marginBottom: '10px', padding: '8px 10px', background: '#fef0ef', borderRadius: '4px', border: '1px solid #fbb' }}>{changePwError}</div>}
             {changePwSuccess && <div style={{ color: '#007600', fontSize: '13px', marginBottom: '10px', padding: '8px 10px', background: '#f0fff0', borderRadius: '4px', border: '1px solid #99d99a' }}>{changePwSuccess}</div>}
             <form onSubmit={handleChangePw} style={{ display: 'flex', flexDirection: 'column', gap: '13px' }}>
-              {[['Current Password', currentPw, setCurrentPw, showCurrentPw, setShowCurrentPw], ['New Password', newPw, setNewPw, showNewPw, setShowNewPw]].map(([lbl, val, setVal, show, setShow], i) => (
-                <div key={i} style={{ display: 'flex', flexDirection: 'column' }}>
+              {[['current-pw', 'Current Password', currentPw, setCurrentPw, showCurrentPw, setShowCurrentPw], ['new-pw', 'New Password', newPw, setNewPw, showNewPw, setShowNewPw]].map(([key, lbl, val, setVal, show, setShow]) => (
+                <div key={key} style={{ display: 'flex', flexDirection: 'column' }}>
                   <label style={{ fontWeight: 700, fontSize: '13px', marginBottom: '4px' }}>{lbl}</label>
                   <div style={{ position: 'relative' }}>
                     <input type={show ? 'text' : 'password'} value={val} onChange={e => setVal(e.target.value)} required
                       style={{ padding: '9px 44px 9px 12px', border: '1px solid #949494', borderRadius: '4px', width: '100%', outline: 'none', fontSize: '14px' }} />
-                    <span onClick={() => setShow(!show)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#007185', userSelect: 'none' }}>
+                    <button type="button" onClick={() => setShow(!show)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#007185', userSelect: 'none', background: 'none', border: 'none', padding: 0 }}>
                       {show ? 'Hide' : 'Show'}
-                    </span>
+                    </button>
                   </div>
                 </div>
               ))}
@@ -330,8 +333,8 @@ export default function ProfilePage() {
 
       {/* ── Regenerate Recovery Key Modal ── */}
       {showRegenModal && (
-        <div style={modalOverlay} onClick={() => { setShowRegenModal(false); setNewRecoveryKey(null); }}>
-          <div style={modalBox} onClick={e => e.stopPropagation()}>
+        <div role="button" tabIndex={0} aria-label="Close modal" style={modalOverlay} onClick={() => { setShowRegenModal(false); setNewRecoveryKey(null); }} onKeyDown={e => { if (e.key === 'Escape') { setShowRegenModal(false); setNewRecoveryKey(null); } }}>
+          <div role="dialog" style={modalBox} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
             <h3 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', color: '#0f1111' }}>
               <IconArrowClockwise /> Regenerate Recovery Key
             </h3>
@@ -361,9 +364,9 @@ export default function ProfilePage() {
                     <div style={{ position: 'relative' }}>
                       <input type={showRegenPw ? 'text' : 'password'} value={regenPw} onChange={e => setRegenPw(e.target.value)} required autoFocus
                         style={{ padding: '9px 44px 9px 12px', border: '1px solid #949494', borderRadius: '4px', width: '100%', outline: 'none', fontSize: '14px' }} />
-                      <span onClick={() => setShowRegenPw(!showRegenPw)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#007185', userSelect: 'none' }}>
+                      <button type="button" onClick={() => setShowRegenPw(!showRegenPw)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#007185', userSelect: 'none', background: 'none', border: 'none', padding: 0 }}>
                         {showRegenPw ? 'Hide' : 'Show'}
-                      </span>
+                      </button>
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>

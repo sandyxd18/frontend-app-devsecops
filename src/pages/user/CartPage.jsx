@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCartStore, useAuthStore } from '../../store/useStore';
 import { orderApi } from '../../services/api';
@@ -63,8 +63,8 @@ export default function CartPage() {
         
         {error && <div className="error-alert">{error}</div>}
         
-        {items.map((item, idx) => (
-          <div key={idx} className="cart-item flex gap-4" style={{borderBottom: '1px solid #ddd', paddingBottom: '20px', marginBottom: '20px'}}>
+        {items.map((item) => (
+          <div key={item.book.id} className="cart-item flex gap-4" style={{borderBottom: '1px solid #ddd', paddingBottom: '20px', marginBottom: '20px'}}>
             <div style={{width: '150px', backgroundColor: '#f8f8f8', display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
               <img src={item.book.image_url || 'https://via.placeholder.com/150'} alt={item.book.title} style={{maxHeight:'150px'}} />
             </div>

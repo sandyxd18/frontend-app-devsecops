@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Navigate, useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Navigate, Link } from 'react-router-dom';
+import PropTypes from 'prop-types';
 import { useAuthStore } from '../../store/useStore';
 import { orderApi, paymentApi, bookApi } from '../../services/api';
 
@@ -45,7 +46,7 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchQR(); }, []);
+  useEffect(() => { fetchQR(); }, []); // eslint-disable-line react-hooks/exhaustive-deps -- fetch QR once on mount
 
   // Countdown — persisted via sessionStorage so closing/reopening doesn't reset
   useEffect(() => {
@@ -62,14 +63,14 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
         // Auto-cancel the order on the backend when QR expires
         orderApi.patch(`/orders/${order.id}/status`, { status: 'CANCELLED' })
           .then(() => { if (onCancelled) onCancelled(order.id); })
-          .catch(() => {});
+          .catch(() => { /* best-effort cancel */ });
       }
     };
 
     tick();
     const iv = setInterval(tick, 1000);
     return () => clearInterval(iv);
-  }, [loading, confirmed]);
+  }, [loading, confirmed]); // eslint-disable-line react-hooks/exhaustive-deps -- timer depends on loading/confirmed state
 
   const formatCountdown = (s) =>
     `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
@@ -106,12 +107,18 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
+      aria-label="Close modal"
       style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={onClose}
+      onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
     >
       <div
+        role="dialog"
         style={{ background: '#fff', borderRadius: '12px', width: '440px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }}
         onClick={e => e.stopPropagation()}
+        onKeyDown={e => e.stopPropagation()}
       >
         {/* Header */}
         <div style={{ background: '#232f3e', padding: '16px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -168,7 +175,7 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
                     background: '#f8f9fa', border: '2px solid #e0e0e0', borderRadius: '8px',
                     filter: expired ? 'blur(4px) grayscale(1)' : 'none', transition: 'filter 0.3s',
                   }}>
-                    {/* Fix: backend returns qr_image, not qr_code_base64 */}
+
                     {qrData?.qr_image ? (
                       <img src={qrData.qr_image} alt="QR Payment" style={{ width: '180px', height: '180px', display: 'block' }} />
                     ) : (
@@ -201,7 +208,11 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
                     cursor: (expired || loading) ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {confirming ? 'Confirming…' : expired ? 'QR Expired' : '✓ Confirm Payment'}
+                  {(() => {
+                    if (confirming) return 'Confirming…';
+                    if (expired) return 'QR Expired';
+                    return '✓ Confirm Payment';
+                  })()}
                 </button>
               </div>
             </>
@@ -211,6 +222,17 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
     </div>
   );
 }
+
+QRModal.propTypes = {
+  order: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    total_price: PropTypes.number,
+    total_amount: PropTypes.number,
+  }).isRequired,
+  onClose: PropTypes.func.isRequired,
+  onCancelled: PropTypes.func,
+  onConfirmed: PropTypes.func,
+};
 
 // ─── Order Detail Modal ───────────────────────────────────────────────────────
 function OrderDetailModal({ order, bookMap, onClose, onPayNow, onCancelRequest }) {
@@ -222,8 +244,10 @@ function OrderDetailModal({ order, bookMap, onClose, onPayNow, onCancelRequest }
     <div
       style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={onClose}
+      onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
     >
       <div
+        role="dialog"
         style={{ background: '#fff', borderRadius: '12px', width: '500px', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.35)' }}
         onClick={e => e.stopPropagation()}
       >
@@ -269,10 +293,10 @@ function OrderDetailModal({ order, bookMap, onClose, onPayNow, onCancelRequest }
             Items Ordered
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-            {items.map((item, idx) => {
+            {items.map((item) => {
               const book = bookMap[item.book_id] || {};
               return (
-                <div key={idx} style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '10px', background: '#f8f9fa', borderRadius: '8px' }}>
+                <div key={item.book_id} style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: '10px', background: '#f8f9fa', borderRadius: '8px' }}>
                   <img
                     src={book.image_url || `https://via.placeholder.com/48x64/e0e0e0/888?text=📖`}
                     alt={book.title || 'Book'}
@@ -343,6 +367,112 @@ function OrderDetailModal({ order, bookMap, onClose, onPayNow, onCancelRequest }
   );
 }
 
+OrderDetailModal.propTypes = {
+  order: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    status: PropTypes.string.isRequired,
+    items: PropTypes.array,
+    order_items: PropTypes.array,
+    created_at: PropTypes.string,
+    total_price: PropTypes.number,
+    total_amount: PropTypes.number,
+  }).isRequired,
+  bookMap: PropTypes.object.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onPayNow: PropTypes.func.isRequired,
+  onCancelRequest: PropTypes.func,
+};
+
+// ─── Order Card (extracted to reduce OrdersPage complexity) ──────────────────
+function OrderCard({ order, bookMap, onDetail, onCancel, onPay }) {
+  const statusStyle = STATUS_COLORS[order.status] || STATUS_COLORS.PENDING;
+  const isPending   = order.status === 'PENDING';
+  const items       = order.items || order.order_items || [];
+  const displayStatus = order.status === 'EXPIRED' ? 'CANCELLED' : order.status;
+
+  return (
+    <div style={{ border: '1px solid #d5d9d9', borderRadius: '8px', background: '#fff', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0f2f2', padding: '14px 20px', borderBottom: '1px solid #d5d9d9', flexWrap: 'wrap', gap: '10px' }}>
+        <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: '11px', color: '#565959', textTransform: 'uppercase', fontWeight: 600 }}>Order Placed</div>
+            <div style={{ fontWeight: 500, fontSize: '14px', marginTop: '2px' }}>
+              {new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', color: '#565959', textTransform: 'uppercase', fontWeight: 600 }}>Total</div>
+            <div style={{ fontWeight: 700, fontSize: '14px', color: '#B12704', marginTop: '2px' }}>
+              {formatIDR(order.total_price ?? order.total_amount)}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: '11px', color: '#565959', textTransform: 'uppercase', fontWeight: 600 }}>Status</div>
+            <span style={{ display: 'inline-block', marginTop: '2px', fontSize: '12px', fontWeight: 700, padding: '2px 10px', borderRadius: '999px', background: statusStyle.bg, color: statusStyle.text, border: `1px solid ${statusStyle.border}` }}>
+              {displayStatus}
+            </span>
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ fontSize: '12px', color: '#565959' }}>#{order.id.substring(0, 12)}…</div>
+          {isPending && (
+            <>
+              <button onClick={onCancel}
+                style={{ padding: '7px 16px', background: '#fff', border: '1px solid #d5d9d9', borderRadius: '999px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'all 0.15s', color: '#0f1111' }}
+                onMouseEnter={e => { e.currentTarget.style.background = '#f0f2f2'; e.currentTarget.style.borderColor = '#aaa'; }}
+                onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#d5d9d9'; }}
+              >❌ Cancel</button>
+              <button onClick={onPay}
+                style={{ padding: '7px 16px', background: '#FFD814', border: '1px solid #a88734', borderRadius: '999px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'background 0.15s' }}
+                onMouseEnter={e => e.currentTarget.style.background = '#f0c14b'}
+                onMouseLeave={e => e.currentTarget.style.background = '#FFD814'}
+              >📲 Pay Now</button>
+            </>
+          )}
+        </div>
+      </div>
+      <div style={{ padding: '16px 20px' }}>
+        {items.map((item) => {
+          const book = bookMap[item.book_id] || {};
+          return (
+            <div key={item.book_id} style={{ display: 'flex', gap: '16px', marginBottom: '14px', paddingBottom: '14px', borderBottom: '1px solid #f0f0f0' }}>
+              <img src={book.image_url || 'https://via.placeholder.com/50x68/e0e0e0/888?text=Book'} alt={book.title || 'Book'}
+                style={{ width: '50px', height: '68px', objectFit: 'cover', borderRadius: '3px', flexShrink: 0, border: '1px solid #e0e0e0' }}
+                onError={e => { e.currentTarget.src = 'https://via.placeholder.com/50x68/e0e0e0/888?text=Book'; }} />
+              <div style={{ flex: 1 }}>
+                <button type="button" onClick={onDetail}
+                  style={{ fontWeight: 600, color: '#007185', fontSize: '14px', marginBottom: '4px', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'transparent', transition: 'text-decoration-color 0.15s', background: 'none', border: 'none', padding: 0, textAlign: 'left' }}
+                  onMouseEnter={e => e.currentTarget.style.textDecorationColor = '#007185'}
+                  onMouseLeave={e => e.currentTarget.style.textDecorationColor = 'transparent'}
+                >{book.title || `Book #${item.book_id?.substring(0, 8)}…`}</button>
+                {book.author && <div style={{ fontSize: '12px', color: '#565959', marginBottom: '4px' }}>by {book.author}</div>}
+                <div style={{ fontSize: '13px', color: '#565959' }}>Qty: {item.quantity}</div>
+                <div style={{ fontSize: '14px', color: '#B12704', fontWeight: 700, marginTop: '4px' }}>{formatIDR(item.price)}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+OrderCard.propTypes = {
+  order: PropTypes.shape({
+    id: PropTypes.string.isRequired,
+    status: PropTypes.string.isRequired,
+    items: PropTypes.array,
+    order_items: PropTypes.array,
+    created_at: PropTypes.string,
+    total_price: PropTypes.number,
+    total_amount: PropTypes.number,
+  }).isRequired,
+  bookMap: PropTypes.object.isRequired,
+  onDetail: PropTypes.func.isRequired,
+  onCancel: PropTypes.func.isRequired,
+  onPay: PropTypes.func.isRequired,
+};
+
 // ─── Orders Page ─────────────────────────────────────────────────────────────
 export default function OrdersPage() {
   const { user } = useAuthStore();
@@ -375,12 +505,12 @@ export default function OrdersPage() {
           bookIds.map(id =>
             bookApi.get(`/books/${id}`)
               .then(res => { map[id] = res.data?.data; })
-              .catch(() => {})
+              .catch(() => { /* book detail fetch failed */ })
           )
         );
         setBookMap(map);
       })
-      .catch(console.error)
+      .catch(() => { /* orders fetch failed */ })
       .finally(() => setLoading(false));
   }, [user?.id]);
 
@@ -404,122 +534,37 @@ export default function OrdersPage() {
       <div className="container" style={{ maxWidth: '860px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: 500, marginBottom: '20px', color: '#0f1111' }}>Your Orders</h1>
 
-        {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#565959' }}>Loading your orders…</div>
-        ) : orders.length === 0 ? (
-          <div style={{ padding: '40px', background: '#fff', border: '1px solid #d5d9d9', borderRadius: '8px', textAlign: 'center' }}>
-            <div style={{ fontSize: '46px', marginBottom: '12px' }}>📦</div>
-            <h3 style={{ marginBottom: '8px', color: '#0f1111' }}>No orders yet</h3>
-            <p style={{ color: '#565959', fontSize: '14px', marginBottom: '20px' }}>You haven't placed any orders yet.</p>
-            <Link to="/" style={{ padding: '10px 24px', background: '#FFD814', border: '1px solid #a88734', borderRadius: '999px', textDecoration: 'none', color: '#111', fontWeight: 700 }}>
-              Start Shopping
-            </Link>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {orders.map(order => {
-              const statusStyle = STATUS_COLORS[order.status] || STATUS_COLORS.PENDING;
-              const isPending   = order.status === 'PENDING';
-              const items       = order.items || order.order_items || [];
-
-              return (
-                <div key={order.id} style={{ border: '1px solid #d5d9d9', borderRadius: '8px', background: '#fff', overflow: 'hidden' }}>
-                  {/* Order Header */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f0f2f2', padding: '14px 20px', borderBottom: '1px solid #d5d9d9', flexWrap: 'wrap', gap: '10px' }}>
-                    <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
-                      <div>
-                        <div style={{ fontSize: '11px', color: '#565959', textTransform: 'uppercase', fontWeight: 600 }}>Order Placed</div>
-                        <div style={{ fontWeight: 500, fontSize: '14px', marginTop: '2px' }}>
-                          {new Date(order.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '11px', color: '#565959', textTransform: 'uppercase', fontWeight: 600 }}>Total</div>
-                        <div style={{ fontWeight: 700, fontSize: '14px', color: '#B12704', marginTop: '2px' }}>
-                          {formatIDR(order.total_price ?? order.total_amount)}
-                        </div>
-                      </div>
-                      <div>
-                        <div style={{ fontSize: '11px', color: '#565959', textTransform: 'uppercase', fontWeight: 600 }}>Status</div>
-                        <span style={{ display: 'inline-block', marginTop: '2px', fontSize: '12px', fontWeight: 700, padding: '2px 10px', borderRadius: '999px', background: statusStyle.bg, color: statusStyle.text, border: `1px solid ${statusStyle.border}` }}>
-                          {order.status === 'EXPIRED' ? 'CANCELLED' : order.status}
-                        </span>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <div style={{ fontSize: '12px', color: '#565959' }}>#{order.id.substring(0, 12)}…</div>
-                      {isPending && (
-                        <>
-                          <button
-                            onClick={() => setCancelOrder(order)}
-                            style={{ padding: '7px 16px', background: '#fff', border: '1px solid #d5d9d9', borderRadius: '999px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'all 0.15s', color: '#0f1111' }}
-                            onMouseEnter={e => { e.currentTarget.style.background = '#f0f2f2'; e.currentTarget.style.borderColor = '#aaa'; }}
-                            onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.borderColor = '#d5d9d9'; }}
-                          >
-                            ❌ Cancel
-                          </button>
-                          <button
-                            onClick={() => setQrOrder(order)}
-                            style={{ padding: '7px 16px', background: '#FFD814', border: '1px solid #a88734', borderRadius: '999px', fontWeight: 700, fontSize: '13px', cursor: 'pointer', transition: 'background 0.15s' }}
-                            onMouseEnter={e => e.currentTarget.style.background = '#f0c14b'}
-                            onMouseLeave={e => e.currentTarget.style.background = '#FFD814'}
-                          >
-                            📲 Pay Now
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Order Items */}
-                  <div style={{ padding: '16px 20px' }}>
-                    {items.map((item, idx) => {
-                      const book = bookMap[item.book_id] || {};
-                      const isLast = idx === items.length - 1;
-                      return (
-                        <div
-                          key={idx}
-                          style={{
-                            display: 'flex', gap: '16px',
-                            marginBottom: isLast ? 0 : '14px',
-                            paddingBottom: isLast ? 0 : '14px',
-                            borderBottom: isLast ? 'none' : '1px solid #f0f0f0',
-                          }}
-                        >
-                          {/* Book cover */}
-                          <img
-                            src={book.image_url || `https://via.placeholder.com/50x68/e0e0e0/888?text=Book`}
-                            alt={book.title || 'Book'}
-                            style={{ width: '50px', height: '68px', objectFit: 'cover', borderRadius: '3px', flexShrink: 0, border: '1px solid #e0e0e0' }}
-                            onError={e => { e.currentTarget.src = `https://via.placeholder.com/50x68/e0e0e0/888?text=Book`; }}
-                          />
-                          <div style={{ flex: 1 }}>
-                            {/* Clickable book title → opens order detail modal */}
-                            <div
-                              onClick={() => setDetailOrder(order)}
-                              style={{ fontWeight: 600, color: '#007185', fontSize: '14px', marginBottom: '4px', cursor: 'pointer', textDecoration: 'underline', textDecorationColor: 'transparent', transition: 'text-decoration-color 0.15s' }}
-                              onMouseEnter={e => e.currentTarget.style.textDecorationColor = '#007185'}
-                              onMouseLeave={e => e.currentTarget.style.textDecorationColor = 'transparent'}
-                            >
-                              {book.title || `Book #${item.book_id?.substring(0, 8)}…`}
-                            </div>
-                            {book.author && (
-                              <div style={{ fontSize: '12px', color: '#565959', marginBottom: '4px' }}>by {book.author}</div>
-                            )}
-                            <div style={{ fontSize: '13px', color: '#565959' }}>Qty: {item.quantity}</div>
-                            <div style={{ fontSize: '14px', color: '#B12704', fontWeight: 700, marginTop: '4px' }}>
-                              {formatIDR(item.price)}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {(() => {
+          if (loading) {
+            return <div style={{ padding: '40px', textAlign: 'center', color: '#565959' }}>Loading your orders…</div>;
+          }
+          if (orders.length === 0) {
+            return (
+              <div style={{ padding: '40px', background: '#fff', border: '1px solid #d5d9d9', borderRadius: '8px', textAlign: 'center' }}>
+                <div style={{ fontSize: '46px', marginBottom: '12px' }}>📦</div>
+                <h3 style={{ marginBottom: '8px', color: '#0f1111' }}>No orders yet</h3>
+                <p style={{ color: '#565959', fontSize: '14px', marginBottom: '20px' }}>You haven&apos;t placed any orders yet.</p>
+                <Link to="/" style={{ padding: '10px 24px', background: '#FFD814', border: '1px solid #a88734', borderRadius: '999px', textDecoration: 'none', color: '#111', fontWeight: 700 }}>
+                  Start Shopping
+                </Link>
+              </div>
+            );
+          }
+          return (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {orders.map(order => (
+                <OrderCard
+                  key={order.id}
+                  order={order}
+                  bookMap={bookMap}
+                  onDetail={() => setDetailOrder(order)}
+                  onCancel={() => setCancelOrder(order)}
+                  onPay={() => setQrOrder(order)}
+                />
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Order Detail Modal */}
@@ -545,8 +590,8 @@ export default function OrdersPage() {
 
       {/* Cancel Confirmation Modal */}
       {cancelOrder && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCancelOrder(null)}>
-          <div style={{ background: '#fff', borderRadius: '12px', width: '400px', overflow: 'hidden', padding: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }} onClick={e => e.stopPropagation()}>
+        <div role="button" tabIndex={0} aria-label="Close cancel dialog" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCancelOrder(null)} onKeyDown={e => { if (e.key === 'Escape') setCancelOrder(null); }}>
+          <div role="dialog" style={{ background: '#fff', borderRadius: '12px', width: '400px', overflow: 'hidden', padding: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
             <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#c40000', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '24px' }}>⚠️</span> Cancel Order
             </h3>

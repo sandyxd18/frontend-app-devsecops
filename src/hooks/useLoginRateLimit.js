@@ -11,7 +11,7 @@ function getStorageState(storageKey) {
     const raw = sessionStorage.getItem(storageKey);
     if (!raw) return { attempts: 0, lockedUntil: null, permanent: false };
     return JSON.parse(raw);
-  } catch {
+  } catch (_e) {
     return { attempts: 0, lockedUntil: null, permanent: false };
   }
 }
@@ -19,13 +19,13 @@ function getStorageState(storageKey) {
 function saveStorageState(storageKey, state) {
   try {
     sessionStorage.setItem(storageKey, JSON.stringify(state));
-  } catch { /* ignore */ }
+  } catch (_e) { /* storage write may fail in private browsing */ }
 }
 
 function clearStorageState(storageKey) {
   try {
     sessionStorage.removeItem(storageKey);
-  } catch { /* ignore */ }
+  } catch (_e) { /* storage remove may fail in private browsing */ }
 }
 
 /**
@@ -58,32 +58,34 @@ export function useLoginRateLimit(storageKey = 'login_rate_limit') {
     return `${m}:${String(s).padStart(2, '0')}`;
   }, [state.permanent, remainingMs]);
 
+  // Helper: find the matching threshold for a given attempt count
+  const findThreshold = (attempts) => {
+    for (let i = THRESHOLDS.length - 1; i >= 0; i--) {
+      if (attempts >= THRESHOLDS[i].failCount) return THRESHOLDS[i];
+    }
+    return null;
+  };
+
+  // Helper: apply a matched threshold to produce new state
+  const applyThreshold = (baseState, threshold) => {
+    if (!threshold) return baseState;
+    if (threshold.durationMs === Infinity) {
+      return { ...baseState, permanent: true, lockedUntil: null };
+    }
+    return { ...baseState, permanent: false, lockedUntil: Date.now() + threshold.durationMs };
+  };
+
   /**
    * Dipanggil setiap kali login gagal.
-   * Mengembalikan { isLocked, isPermanent, message } setelah update.
+   * Mengembalikan { isLocked, isPermanent } setelah update.
    */
   const recordFailure = useCallback(() => {
     const current = getStorageState(storageKey);
     if (current.permanent) return { isLocked: true, isPermanent: true };
 
     const newAttempts = current.attempts + 1;
-    let newState = { ...current, attempts: newAttempts };
-
-    // Cari threshold yang cocok (dari besar ke kecil)
-    for (let i = THRESHOLDS.length - 1; i >= 0; i--) {
-      if (newAttempts >= THRESHOLDS[i].failCount) {
-        if (THRESHOLDS[i].durationMs === Infinity) {
-          newState = { ...newState, permanent: true, lockedUntil: null };
-        } else {
-          newState = {
-            ...newState,
-            permanent: false,
-            lockedUntil: Date.now() + THRESHOLDS[i].durationMs,
-          };
-        }
-        break;
-      }
-    }
+    const threshold = findThreshold(newAttempts);
+    const newState = applyThreshold({ ...current, attempts: newAttempts }, threshold);
 
     saveStorageState(storageKey, newState);
     setState(newState);

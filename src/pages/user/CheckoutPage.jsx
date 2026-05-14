@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { bookApi, orderApi } from '../../services/api';
+import { orderApi } from '../../services/api';
 import { useAuthStore } from '../../store/useStore';
 
 const formatIDR = (p) => new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(p);
@@ -27,9 +27,9 @@ export default function CheckoutPage() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (!user) { navigate('/login'); return; }
-    if (!book) { navigate('/'); return; }
-  }, []);
+    if (!user) { navigate('/login'); }
+    else if (!book) { navigate('/'); }
+  }, [user, navigate, book]); // eslint-disable-line react-hooks/exhaustive-deps -- guard redirects on mount
 
   if (!book) return null;
 
@@ -115,7 +115,10 @@ export default function CheckoutPage() {
                       display: 'flex', alignItems: 'center', gap: '12px', padding: '14px 16px',
                       border: `2px solid ${paymentMethod === pm.id && pm.available ? '#FFD814' : '#d5d9d9'}`,
                       borderRadius: '8px', cursor: pm.available ? 'pointer' : 'not-allowed',
-                      background: pm.available ? (paymentMethod === pm.id ? '#fffbe6' : '#fff') : '#f8f8f8',
+                      background: (() => {
+                        if (!pm.available) return '#f8f8f8';
+                        return paymentMethod === pm.id ? '#fffbe6' : '#fff';
+                      })(),
                       opacity: pm.available ? 1 : 0.7, transition: 'border-color 0.15s',
                     }}
                   >

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { authApi } from '../../services/api';
 import './LoginPage.css';
@@ -205,9 +205,9 @@ export default function ForgotPasswordPage() {
                     required
                     style={{ paddingRight: '48px' }}
                   />
-                  <span onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#007185', userSelect: 'none' }}>
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: '12px', color: '#007185', userSelect: 'none', background: 'none', border: 'none', padding: 0 }}>
                     {showPassword ? 'Hide' : 'Show'}
-                  </span>
+                  </button>
                 </div>
               </div>
 
@@ -215,12 +215,12 @@ export default function ForgotPasswordPage() {
                 <div style={{ fontSize: '12px', lineHeight: 1.7 }}>
                   <div style={{ fontWeight: 700, marginBottom: '3px', color: '#565959' }}>Password must contain:</div>
                   {[
-                    [lengthValid,  '8 – 12 characters'],
-                    [caseValid,    'Uppercase & lowercase letters'],
-                    [numberValid,  'At least one number'],
-                    [symbolValid,  'At least one symbol'],
-                  ].map(([ok, lbl], i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: ok ? '#007600' : '#d82c0d' }}>
+                    [lengthValid,  '8-12-chars', '8 – 12 characters'],
+                    [caseValid,    'case-mix', 'Uppercase & lowercase letters'],
+                    [numberValid,  'has-number', 'At least one number'],
+                    [symbolValid,  'has-symbol', 'At least one symbol'],
+                  ].map(([ok, key, lbl]) => (
+                    <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: ok ? '#007600' : '#d82c0d' }}>
                       <span style={{ width: '14px', fontWeight: 'bold' }}>{ok ? '✓' : '✗'}</span>{lbl}
                     </div>
                   ))}

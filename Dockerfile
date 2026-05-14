@@ -1,4 +1,4 @@
-FROM node:alpine as build-stage
+FROM node:alpine AS build-stage
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -19,7 +19,7 @@ ENV VITE_BLOCKCHAIN_API_URL=$VITE_BLOCKCHAIN_API_URL
 
 RUN npm run build
 
-FROM nginx:alpine as production-stage
+FROM nginx:alpine AS production-stage
 COPY --from=build-stage /app/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80

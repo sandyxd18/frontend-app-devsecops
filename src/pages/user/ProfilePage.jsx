@@ -192,7 +192,6 @@ export default function ProfilePage() {
 
           {/* ── Order History Container (big, clickable → /orders) ── */}
           <div
-            role="button"
             tabIndex={0}
             onClick={() => navigate('/orders')}
             onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate('/orders'); }}
@@ -279,8 +278,8 @@ export default function ProfilePage() {
 
       {/* ── Delete Modal ── */}
       {showDeleteModal && (
-        <div role="button" tabIndex={0} aria-label="Close modal" style={modalOverlay} onClick={() => setShowDeleteModal(false)} onKeyDown={e => { if (e.key === 'Escape') setShowDeleteModal(false); }}>
-          <div role="dialog" style={modalBox} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+        <div style={modalOverlay} onClick={() => setShowDeleteModal(false)} onKeyDown={e => { if (e.key === 'Escape') setShowDeleteModal(false); }}>
+          <div style={modalBox} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
             <h3 style={{ color: '#c40000', fontSize: '17px', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center' }}>
               <IconTriangleFill /> Delete Account
             </h3>
@@ -302,8 +301,8 @@ export default function ProfilePage() {
 
       {/* ── Change Password Modal ── */}
       {showChangePwModal && (
-        <div role="button" tabIndex={0} aria-label="Close modal" style={modalOverlay} onClick={() => setShowChangePwModal(false)} onKeyDown={e => { if (e.key === 'Escape') setShowChangePwModal(false); }}>
-          <div role="dialog" style={modalBox} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+        <div style={modalOverlay} onClick={() => setShowChangePwModal(false)} onKeyDown={e => { if (e.key === 'Escape') setShowChangePwModal(false); }}>
+          <div style={modalBox} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
             <h3 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '16px', display: 'flex', alignItems: 'center', color: '#0f1111' }}>
               <IconKey /> Change Password
             </h3>
@@ -333,8 +332,8 @@ export default function ProfilePage() {
 
       {/* ── Regenerate Recovery Key Modal ── */}
       {showRegenModal && (
-        <div role="button" tabIndex={0} aria-label="Close modal" style={modalOverlay} onClick={() => { setShowRegenModal(false); setNewRecoveryKey(null); }} onKeyDown={e => { if (e.key === 'Escape') { setShowRegenModal(false); setNewRecoveryKey(null); } }}>
-          <div role="dialog" style={modalBox} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+        <div style={modalOverlay} onClick={() => { setShowRegenModal(false); setNewRecoveryKey(null); }} onKeyDown={e => { if (e.key === 'Escape') { setShowRegenModal(false); setNewRecoveryKey(null); } }}>
+          <div style={modalBox} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
             <h3 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '12px', display: 'flex', alignItems: 'center', color: '#0f1111' }}>
               <IconArrowClockwise /> Regenerate Recovery Key
             </h3>

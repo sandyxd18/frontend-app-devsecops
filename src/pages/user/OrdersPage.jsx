@@ -107,15 +107,11 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      aria-label="Close modal"
       style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={onClose}
       onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
     >
       <div
-        role="dialog"
         style={{ background: '#fff', borderRadius: '12px', width: '440px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }}
         onClick={e => e.stopPropagation()}
         onKeyDown={e => e.stopPropagation()}
@@ -247,7 +243,6 @@ function OrderDetailModal({ order, bookMap, onClose, onPayNow, onCancelRequest }
       onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
     >
       <div
-        role="dialog"
         style={{ background: '#fff', borderRadius: '12px', width: '500px', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.35)' }}
         onClick={e => e.stopPropagation()}
       >
@@ -590,8 +585,8 @@ export default function OrdersPage() {
 
       {/* Cancel Confirmation Modal */}
       {cancelOrder && (
-        <div role="button" tabIndex={0} aria-label="Close cancel dialog" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCancelOrder(null)} onKeyDown={e => { if (e.key === 'Escape') setCancelOrder(null); }}>
-          <div role="dialog" style={{ background: '#fff', borderRadius: '12px', width: '400px', overflow: 'hidden', padding: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setCancelOrder(null)} onKeyDown={e => { if (e.key === 'Escape') setCancelOrder(null); }}>
+          <div style={{ background: '#fff', borderRadius: '12px', width: '400px', overflow: 'hidden', padding: '24px', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }} onClick={e => e.stopPropagation()} onKeyDown={e => e.stopPropagation()}>
             <h3 style={{ marginTop: 0, marginBottom: '16px', color: '#c40000', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontSize: '24px' }}>⚠️</span> Cancel Order
             </h3>

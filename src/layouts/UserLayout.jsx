@@ -232,9 +232,6 @@ export default function UserLayout() {
       {/* ── Dark Overlay (sidebar + account hover + search focus) ── */}
       {overlayActive && (
         <div
-          role="button"
-          tabIndex={0}
-          aria-label="Close overlay"
           style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', zIndex: 50 }}
           onClick={() => { setSidebarOpen(false); setMenuOpen(false); setSearchFocused(false); }}
           onKeyDown={handleKeyDown(() => { setSidebarOpen(false); setMenuOpen(false); setSearchFocused(false); })}

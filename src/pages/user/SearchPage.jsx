@@ -83,8 +83,6 @@ export default function SearchPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
                   {authorGroups.map(({ author, books: ab }) => (
                     <div key={author}
-                      role="button"
-                      tabIndex={0}
                       style={{ background: '#fff', border: '1px solid #d5d9d9', borderRadius: '8px', padding: '18px', cursor: 'pointer', transition: 'box-shadow 0.18s' }}
                       onClick={() => navigate(`/author/${encodeURIComponent(author)}`)}
                       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate(`/author/${encodeURIComponent(author)}`); }}
@@ -116,8 +114,6 @@ export default function SearchPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(175px, 1fr))', gap: '16px' }}>
                 {results.map(book => (
                   <div key={book.id}
-                    role="button"
-                    tabIndex={0}
                     style={{ background: '#fff', border: '1px solid #d5d9d9', borderRadius: '8px', padding: '14px', cursor: 'pointer', display: 'flex', flexDirection: 'column', transition: 'box-shadow 0.18s' }}
                     onClick={() => navigate(`/book/${book.id}`)}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate(`/book/${book.id}`); }}

@@ -73,11 +73,11 @@ export default function AuthorPage() {
           <div className="product-grid">
             {books.map(product => (
               <div key={product.id} className="product-card card">
-                <div className="product-image-wrap" role="button" tabIndex={0} onClick={() => navigate(`/book/${product.id}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate(`/book/${product.id}`); }} style={{ cursor: 'pointer' }}>
+                <div className="product-image-wrap" tabIndex={0} onClick={() => navigate(`/book/${product.id}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate(`/book/${product.id}`); }} style={{ cursor: 'pointer' }}>
                   <img src={product.image_url || 'https://via.placeholder.com/200?text=No+Image'} alt={product.title} className="product-image" />
                 </div>
                 <div className="product-info">
-                  <h3 className="product-title" role="button" tabIndex={0} onClick={() => navigate(`/book/${product.id}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate(`/book/${product.id}`); }}>{product.title}</h3>
+                  <h3 className="product-title" tabIndex={0} onClick={() => navigate(`/book/${product.id}`)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') navigate(`/book/${product.id}`); }}>{product.title}</h3>
                   <div style={{ fontSize: '13px', color: '#565959', marginBottom: '8px' }}>{product.author}</div>
                   <div className="product-price">{new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(product.price)}</div>
                   {product.stock <= 0 && (

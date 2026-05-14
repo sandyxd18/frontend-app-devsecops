@@ -55,8 +55,6 @@ export default function HomePage() {
                       <div
                         key={b.id}
                         className="author-book-item"
-                        role="button"
-                        tabIndex={0}
                         onClick={() => navigate(`/book/${b.id}`)}
                         onKeyDown={handleKeyDown(() => navigate(`/book/${b.id}`))}
                       >
@@ -71,8 +69,6 @@ export default function HomePage() {
                   </div>
                   <div
                     className="see-more-link"
-                    role="button"
-                    tabIndex={0}
                     onClick={() => navigate(`/author/${encodeURIComponent(author)}`)}
                     onKeyDown={handleKeyDown(() => navigate(`/author/${encodeURIComponent(author)}`))}
                   >
@@ -92,8 +88,6 @@ export default function HomePage() {
               <div key={product.id} className="product-card card" style={{ opacity: product.stock <= 0 ? 0.85 : 1 }}>
                 <div
                   className="product-image-wrap"
-                  role="button"
-                  tabIndex={0}
                   onClick={() => navigate(`/book/${product.id}`)}
                   onKeyDown={handleKeyDown(() => navigate(`/book/${product.id}`))}
                   style={{ cursor: 'pointer', position: 'relative' }}
@@ -116,8 +110,6 @@ export default function HomePage() {
                 <div className="product-info">
                   <h3
                     className="product-title"
-                    role="button"
-                    tabIndex={0}
                     onClick={() => navigate(`/book/${product.id}`)}
                     onKeyDown={handleKeyDown(() => navigate(`/book/${product.id}`))}
                   >

@@ -16,6 +16,81 @@ const STATUS_COLORS = {
 
 const QR_VALIDITY_SECONDS = 15 * 60;
 
+// ─── Extracted: Countdown bar display ─────────────────────────────────────────
+function QRCountdownBar({ expired, secondsLeft, onRefresh }) {
+  const formatCountdown = (s) =>
+    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      background: expired ? '#fef0ef' : '#f0fff0',
+      border: `1px solid ${expired ? '#fbb' : '#99d99a'}`,
+      borderRadius: '6px', padding: '8px 14px', marginBottom: '16px',
+    }}>
+      <span style={{ fontSize: '13px', fontWeight: 600, color: expired ? '#c40000' : '#007600' }}>
+        {expired ? '⏰ QR Expired — Order Cancelled' : '⏳ Valid for'}
+      </span>
+      {!expired && (
+        <span style={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 700, color: secondsLeft < 60 ? '#c40000' : '#007600' }}>
+          {formatCountdown(secondsLeft)}
+        </span>
+      )}
+      {expired && (
+        <button onClick={onRefresh}
+          style={{ fontSize: '12px', padding: '3px 10px', background: '#c40000', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+        >Refresh</button>
+      )}
+    </div>
+  );
+}
+
+QRCountdownBar.propTypes = {
+  expired: PropTypes.bool.isRequired,
+  secondsLeft: PropTypes.number.isRequired,
+  onRefresh: PropTypes.func.isRequired,
+};
+
+// ─── Extracted: QR image display ──────────────────────────────────────────────
+function QRImageDisplay({ qrData, expired, loading }) {
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '30px', color: '#565959' }}>Loading QR…</div>;
+  }
+  return (
+    <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+      <div style={{
+        display: 'inline-block', padding: '16px',
+        background: '#f8f9fa', border: '2px solid #e0e0e0', borderRadius: '8px',
+        filter: expired ? 'blur(4px) grayscale(1)' : 'none', transition: 'filter 0.3s',
+      }}>
+        {qrData?.qr_image ? (
+          <img src={qrData.qr_image} alt="QR Payment" style={{ width: '180px', height: '180px', display: 'block' }} />
+        ) : (
+          <div style={{ width: '180px', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: '13px' }}>
+            📲 QR not available
+          </div>
+        )}
+      </div>
+      <div style={{ fontSize: '11px', color: '#007185', marginTop: '8px' }}>
+        Payment ID: {(qrData?.payment_id || qrData?.id)?.substring(0, 12) || '—'}…
+      </div>
+    </div>
+  );
+}
+
+QRImageDisplay.propTypes = {
+  qrData: PropTypes.object,
+  expired: PropTypes.bool.isRequired,
+  loading: PropTypes.bool.isRequired,
+};
+
+// ─── Helper: build confirm button label ───────────────────────────────────────
+function getConfirmLabel(confirming, expired) {
+  if (confirming) { return 'Confirming…'; }
+  if (expired) { return 'QR Expired'; }
+  return '✓ Confirm Payment';
+}
+
 // ─── QR Payment Modal ────────────────────────────────────────────────────────
 function QRModal({ order, onClose, onCancelled, onConfirmed }) {
   const storageKey = `qr_start_${order.id}`;
@@ -28,7 +103,6 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError]         = useState('');
 
-  // Fetch QR from backend (idempotent — returns existing PENDING payment if any)
   const fetchQR = () => {
     setLoading(true);
     setError('');
@@ -46,23 +120,21 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchQR(); }, []); // eslint-disable-line react-hooks/exhaustive-deps -- fetch QR once on mount
+  useEffect(() => { fetchQR(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Countdown — persisted via sessionStorage so closing/reopening doesn't reset
   useEffect(() => {
-    if (loading || confirmed) return;
+    if (loading || confirmed) { return; }
 
     const tick = () => {
       const startTime = parseInt(sessionStorage.getItem(storageKey) || Date.now().toString(), 10);
       const elapsed   = Math.floor((Date.now() - startTime) / 1000);
       const remaining = Math.max(0, QR_VALIDITY_SECONDS - elapsed);
       setSecondsLeft(remaining);
-      if (remaining === 0) {
+      if (remaining <= 0) {
         setExpired(true);
         clearInterval(iv);
-        // Auto-cancel the order on the backend when QR expires
         orderApi.patch(`/orders/${order.id}/status`, { status: 'CANCELLED' })
-          .then(() => { if (onCancelled) onCancelled(order.id); })
+          .then(() => { if (onCancelled) { onCancelled(order.id); } })
           .catch(() => { /* best-effort cancel */ });
       }
     };
@@ -70,24 +142,19 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
     tick();
     const iv = setInterval(tick, 1000);
     return () => clearInterval(iv);
-  }, [loading, confirmed]); // eslint-disable-line react-hooks/exhaustive-deps -- timer depends on loading/confirmed state
+  }, [loading, confirmed]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const formatCountdown = (s) =>
-    `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
-
-  // Fix: backend returns payment_id, not id
   const handleConfirm = async () => {
     const pid = qrData?.payment_id || qrData?.id;
-    if (!pid) return;
+    if (!pid) { return; }
     setConfirming(true);
     setError('');
     try {
       await paymentApi.post('/payments/confirm', { payment_id: pid });
       setConfirmed(true);
-      // Use callback to update state instead of full page reload (which would log out the user)
       setTimeout(() => {
         onClose();
-        if (onConfirmed) onConfirmed(order.id);
+        if (onConfirmed) { onConfirmed(order.id); }
       }, 2000);
     } catch (e) {
       setError(e.response?.data?.message || 'Failed to confirm payment.');
@@ -109,14 +176,13 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
     <div
       style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.75)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       onClick={onClose}
-      onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
+      onKeyDown={e => { if (e.key === 'Escape') { onClose(); } }}
     >
       <div
         style={{ background: '#fff', borderRadius: '12px', width: '440px', overflow: 'hidden', boxShadow: '0 20px 50px rgba(0,0,0,0.4)' }}
         onClick={e => e.stopPropagation()}
         onKeyDown={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div style={{ background: '#232f3e', padding: '16px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: '12px', color: '#aaa' }}>Order #{order.id.substring(0, 8)}…</div>
@@ -136,55 +202,8 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
             </div>
           ) : (
             <>
-              {/* Countdown */}
-              <div style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                background: expired ? '#fef0ef' : '#f0fff0',
-                border: `1px solid ${expired ? '#fbb' : '#99d99a'}`,
-                borderRadius: '6px', padding: '8px 14px', marginBottom: '16px',
-              }}>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: expired ? '#c40000' : '#007600' }}>
-                  {expired ? '⏰ QR Expired — Order Cancelled' : '⏳ Valid for'}
-                </span>
-                {!expired && (
-                  <span style={{ fontFamily: 'monospace', fontSize: '18px', fontWeight: 700, color: secondsLeft < 60 ? '#c40000' : '#007600' }}>
-                    {formatCountdown(secondsLeft)}
-                  </span>
-                )}
-                {expired && (
-                  <button
-                    onClick={handleRefresh}
-                    style={{ fontSize: '12px', padding: '3px 10px', background: '#c40000', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                  >
-                    Refresh
-                  </button>
-                )}
-              </div>
-
-              {/* QR Image */}
-              {loading ? (
-                <div style={{ textAlign: 'center', padding: '30px', color: '#565959' }}>Loading QR…</div>
-              ) : (
-                <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-                  <div style={{
-                    display: 'inline-block', padding: '16px',
-                    background: '#f8f9fa', border: '2px solid #e0e0e0', borderRadius: '8px',
-                    filter: expired ? 'blur(4px) grayscale(1)' : 'none', transition: 'filter 0.3s',
-                  }}>
-
-                    {qrData?.qr_image ? (
-                      <img src={qrData.qr_image} alt="QR Payment" style={{ width: '180px', height: '180px', display: 'block' }} />
-                    ) : (
-                      <div style={{ width: '180px', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: '13px' }}>
-                        📲 QR not available
-                      </div>
-                    )}
-                  </div>
-                  <div style={{ fontSize: '11px', color: '#007185', marginTop: '8px' }}>
-                    Payment ID: {(qrData?.payment_id || qrData?.id)?.substring(0, 12) || '—'}…
-                  </div>
-                </div>
-              )}
+              <QRCountdownBar expired={expired} secondsLeft={secondsLeft} onRefresh={handleRefresh} />
+              <QRImageDisplay qrData={qrData} expired={expired} loading={loading} />
 
               {error && (
                 <div style={{ color: '#c40000', fontSize: '12px', marginBottom: '10px', padding: '8px', background: '#fef0ef', borderRadius: '4px' }}>
@@ -204,11 +223,7 @@ function QRModal({ order, onClose, onCancelled, onConfirmed }) {
                     cursor: (expired || loading) ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  {(() => {
-                    if (confirming) return 'Confirming…';
-                    if (expired) return 'QR Expired';
-                    return '✓ Confirm Payment';
-                  })()}
+                  {getConfirmLabel(confirming, expired)}
                 </button>
               </div>
             </>
@@ -245,6 +260,7 @@ function OrderDetailModal({ order, bookMap, onClose, onPayNow, onCancelRequest }
       <div
         style={{ background: '#fff', borderRadius: '12px', width: '500px', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(0,0,0,0.35)' }}
         onClick={e => e.stopPropagation()}
+        onKeyDown={e => e.stopPropagation()}
       >
         {/* Header */}
         <div style={{ background: '#232f3e', padding: '16px 20px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexShrink: 0 }}>
@@ -522,7 +538,6 @@ export default function OrdersPage() {
   };
 
   if (!user) return <Navigate to="/login" replace />;
-
 
   return (
     <div style={{ backgroundColor: '#EAEDED', minHeight: 'calc(100vh - 130px)', padding: '30px 0 50px' }}>

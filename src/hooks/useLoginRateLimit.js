@@ -9,7 +9,7 @@ const THRESHOLDS = [
 function getStorageState(storageKey) {
   try {
     const raw = sessionStorage.getItem(storageKey);
-    if (!raw) return { attempts: 0, lockedUntil: null, permanent: false };
+    if (!raw) { return { attempts: 0, lockedUntil: null, permanent: false }; }
     return JSON.parse(raw);
   } catch (_e) {
     return { attempts: 0, lockedUntil: null, permanent: false };
@@ -26,6 +26,33 @@ function clearStorageState(storageKey) {
   try {
     sessionStorage.removeItem(storageKey);
   } catch (_e) { /* storage remove may fail in private browsing */ }
+}
+
+// Helper: find the matching threshold for a given attempt count
+function findThreshold(attempts) {
+  for (let i = THRESHOLDS.length - 1; i >= 0; i--) {
+    if (attempts >= THRESHOLDS[i].failCount) { return THRESHOLDS[i]; }
+  }
+  return null;
+}
+
+// Helper: apply a matched threshold to produce new state
+function applyThreshold(baseState, threshold) {
+  if (!threshold) { return baseState; }
+  if (threshold.durationMs === Infinity) {
+    return { ...baseState, permanent: true, lockedUntil: null };
+  }
+  return { ...baseState, permanent: false, lockedUntil: Date.now() + threshold.durationMs };
+}
+
+// Helper: build the countdown label
+function buildCountdownLabel(permanent, remainingMs) {
+  if (permanent) { return 'Sesi ini telah diblokir permanen.'; }
+  if (remainingMs <= 0) { return ''; }
+  const totalSec = Math.ceil(remainingMs / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
 }
 
 /**
@@ -48,32 +75,11 @@ export function useLoginRateLimit(storageKey = 'login_rate_limit') {
   const isLocked = state.permanent || remainingMs > 0;
   const isPermanent = state.permanent;
 
-  // Format label countdown "MM:SS" atau "mm menit ss detik"
-  const remainingLabel = useCallback(() => {
-    if (state.permanent) return 'Sesi ini telah diblokir permanen.';
-    if (remainingMs <= 0) return '';
-    const totalSec = Math.ceil(remainingMs / 1000);
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
-  }, [state.permanent, remainingMs]);
-
-  // Helper: find the matching threshold for a given attempt count
-  const findThreshold = (attempts) => {
-    for (let i = THRESHOLDS.length - 1; i >= 0; i--) {
-      if (attempts >= THRESHOLDS[i].failCount) return THRESHOLDS[i];
-    }
-    return null;
-  };
-
-  // Helper: apply a matched threshold to produce new state
-  const applyThreshold = (baseState, threshold) => {
-    if (!threshold) return baseState;
-    if (threshold.durationMs === Infinity) {
-      return { ...baseState, permanent: true, lockedUntil: null };
-    }
-    return { ...baseState, permanent: false, lockedUntil: Date.now() + threshold.durationMs };
-  };
+  // Format label countdown "MM:SS"
+  const remainingLabel = useCallback(
+    () => buildCountdownLabel(state.permanent, remainingMs),
+    [state.permanent, remainingMs]
+  );
 
   /**
    * Dipanggil setiap kali login gagal.
@@ -81,7 +87,7 @@ export function useLoginRateLimit(storageKey = 'login_rate_limit') {
    */
   const recordFailure = useCallback(() => {
     const current = getStorageState(storageKey);
-    if (current.permanent) return { isLocked: true, isPermanent: true };
+    if (current.permanent) { return { isLocked: true, isPermanent: true }; }
 
     const newAttempts = current.attempts + 1;
     const threshold = findThreshold(newAttempts);

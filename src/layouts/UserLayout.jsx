@@ -253,7 +253,7 @@ export default function UserLayout() {
         </div>
         <div style={{ padding: '8px 0' }}>
           <button
-            style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: '#0f1111', borderBottom: '1px solid #f0f0f0', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #f0f0f0', textAlign: 'left' }}
+            style={{ padding: '12px 20px', cursor: 'pointer', fontWeight: 600, fontSize: '14px', color: '#0f1111', display: 'flex', alignItems: 'center', gap: '8px', width: '100%', background: 'transparent', border: 'none', borderBottom: '1px solid #f0f0f0', textAlign: 'left' }}
             onClick={() => { setSidebarOpen(false); navigate('/'); }}
             onMouseEnter={e => e.currentTarget.style.background = '#f0f2f2'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
